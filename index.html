@@ -102,9 +102,9 @@
                     }
                 }
                 if (j % 2 == 0) // semnul in functie de paritatea lui j
-                    expr += "+(" + calcDet(mn) + ")" + "*(-1)*" + a[0][j]
-                else
                     expr += "+(" + calcDet(mn) + ")" + "*" + a[0][j]
+                else
+                    expr += "+(" + calcDet(mn) + ")" + "*(-1)*" + a[0][j]
             }
             return Algebrite.run(expr)
         }
