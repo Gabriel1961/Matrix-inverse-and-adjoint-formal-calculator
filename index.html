@@ -5,20 +5,24 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/latest.js?config=AM_CHTML"></script>
     <title>Matrice inversa</title>
 </head>
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
-</script>
 
 <body>
-    <input style="width: 20px;" type="text">
+    <div style="margin-bottom: 10px;">
+        <label for="table-size">Marimea matricei: </label>
+        <input id="table-size" type="number" min="1" max="10" value="3" required />
+        <table id="matrix-input">
+
+        </table>
+    </div>
+    <button style="margin-bottom: 10px;" id="calc-button">
+        Calculate
+    </button>
     <div>
         <script type="math/asciimath">
-            f(x) = 2^x
+            det A =
         </script>
     </div>
     <script>
@@ -188,13 +192,98 @@
             }
         }
 
+        function createMatrixInput(size) {
+            tb = document.getElementById("matrix-input")
+            tb.innerHTML = ""
+            for (let i = 0; i < size; i++) {
+                let row = tb.insertRow();
+                for (let j = 0; j < size; j++) {
+                    let cell = row.insertCell()
+                    cin = document.createElement("input")
+                    cin.value = 0
+                    cell.appendChild(cin)
+                }
+            }
+        }
 
-        f2 = new FracSq(1, 4, 2)
-        f1 = new FracSq(1, 2, 3)
-        f3 = new FracSq(2, 1, 3)
-        res = f1.mul(f2)
-        res = res.mul(f3)
-        console.log(res)
+        function toPostfix(eq) {
+            eq = eq.replace(/\s/g, "");
+            const prec = { "+": 1, "-": 1, "/": 2, "*": 2, "sqrt": 3 }
+            var stk = []
+            var outq = []
+            var i = 0
+            const readToken = () => {
+                if (eq[i] in prec || eq[i] == ")" || eq[i] == "(") {
+                    i++
+                    return eq[i - 1]
+                }
+                if (eq.substring(i, 4) == "sqrt") {
+                    i += 4
+                    var nr = parseInt(eq.substring(i))
+                    i += nr.toString().length
+                    return FracSq(nr,1,2);
+                }
+                var nr = parseInt(eq.substring(i))
+                if (isNaN(nr) == false) {
+                    i += nr.toString().length
+                    return nr
+                }
+            }
+
+            while (i != eq.length) {
+                token = readToken()
+                if (Number.isInteger(token)) {
+                    outq.push(token)
+                }
+                else if (token == "(") {
+                    stk.push(token)
+                }
+                else if (token == ")") {
+                    while (stk[stk.length - 1] != "(") {
+                        outq.push(stk.pop())
+                    }
+                    if (stk.length != 0)
+                        if (stk[stk.length - 1] == "(")
+                            stk.pop()
+                }
+                else if (token in prec) {
+                    if (stk.length != 0)
+                        while (prec[stk[stk.length - 1]] > prec[token]) {
+                            outq.push(stk.pop())
+                        }
+                    stk.push(token)
+                } else {
+                    throw "token " + token + " is not valid " + i;
+                }
+            }
+            while (stk.length) {
+                outq.push(stk.pop())
+            }
+            return outq
+        }
+
+        function parseMatrixInput() {
+            var mat = []
+            var rows = document.getElementById("matrix-input").querySelectorAll("tr");
+            for (var i = 0; i < rows.length; i++) {
+                var cells = rows[i].querySelectorAll("td");
+                mat.push([])
+                for (var j = 0; j < cells.length; j++) {
+                    mat[i].push(toPostfix(cells[j].childNodes[0].value))
+                }
+            }
+            return mat
+        }
+
+        var tableSize = document.getElementById("table-size");
+        tableSize.addEventListener("change", function () {
+            createMatrixInput(parseInt(tableSize.value))
+        })
+        createMatrixInput(parseInt(tableSize.value))
+        var calcBut = document.getElementById("calc-button")
+        calcBut.addEventListener("click", function () {
+            console.log(mat = parseMatrixInput())
+        })
     </script>
 </body>
 
