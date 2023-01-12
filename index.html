@@ -106,7 +106,54 @@
                 else
                     expr += "+(" + calcDet(mn) + ")" + "*(-1)*" + a[0][j]
             }
+
             return Algebrite.run(expr)
+        }
+
+        function transpose(a) {
+            let n = a.length
+            for (let i = 0; i < n; i++)
+                for (let j = i + 1; j < n; j++) {
+                    let c = a[i][j]
+                    a[i][j] = a[j][i]
+                    a[j][i] = c
+                }
+        }
+
+        function calcInverse(a) {
+            transpose(a)
+            let n = a.length
+            expr = "0"
+            let ideta = "(" + Algebrite.run("1/(" + calcDet(a) + ")") + ")"
+            inv = []
+            for (let i = 0; i < n; i++) {
+                inv.push([])
+                for (let j = 0; j < n; j++) {
+                    let inc = 0
+                    let mn = []
+                    for (let k = 0; k < n - 1; k++)
+                        mn.push([])
+                    for (let i1 = 0; i1 < n; i1++) {
+                        for (let j1 = 0; j1 < n; j1++) {
+                            if (i1 == i) {
+                                inc = -1
+                                continue
+                            }
+                            if (j1 == j) {
+                                continue
+                            }
+                            mn[i1 + inc].push(a[i1][j1])
+                        }
+                    }
+                    let ne
+                    if ((i + j) % 2 == 0) // semnul in functie de paritatea lui j
+                        ne = Algebrite.run("(" + calcDet(mn) + ")" + "*" + ideta)
+                    else
+                        ne = Algebrite.run("(" + calcDet(mn) + ")" + "*(-1)*" + ideta)
+                    inv[i].push(replaceSqrt(ne))
+                }
+            }
+            return inv
         }
 
         let tableSize = document.getElementById("table-size");
@@ -126,9 +173,10 @@
                     var math = MathJax.Hub.getAllJax("result-latex")[0]
                     calcBut.addEventListener('click', function () {
                         let mat = parseMatrixInput()
-                        let res = calcDet(mat)
-                        res = replaceSqrt(res)
-                        MathJax.Hub.Queue(['Text', math, "det A =" + res])
+                        let inv = calcInverse(mat)
+                        let det = calcDet(mat)
+                        det = replaceSqrt(det)
+                        MathJax.Hub.Queue(['Text', math, "A^-1=" + JSON.stringify(inv) + ", det A = " + det])
                     })
                 })
             }
