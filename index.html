@@ -5,196 +5,134 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/latest.js?config=AM_CHTML"></script>
+    <script src="algebrite.js"></script>
     <title>Matrice inversa</title>
 </head>
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
-</script>
 
 <body>
-    <input style="width: 20px;" type="text">
-    <div>
-        <script type="math/asciimath">
-            f(x) = 2^x
+    <div style="margin-bottom: 10px;">
+        <label for="table-size">Marimea matricei: </label>
+        <input id="table-size" type="number" min="1" max="10" value="3" required />
+        <table id="matrix-input">
+
+        </table>
+    </div>
+
+    <button style="margin-bottom: 20px;" id="calc-button">
+        Calculeaza
+    </button>
+    <div style="transform: translate(25%) scale(150%);" class="ioarea" id="result-latex">
+        <script type="math/asciimath" id="result-box">
         </script>
     </div>
     <script>
-        function _gcd(a, b) {
-            if (b == 0)
-                return a
-            else
-                return _gcd(b, a % b)
-        }
 
-        function ipow(a, exp) {
-            res = 1
-            r = a
-            while (exp != 0) {
-                if (exp & 1 != 0)
-                    res = res * r;
-
-                r = r * a
-                exp /= 2
-            }
-            return res
-        }
-
-        function gcd(a, b) {
-            if (a == undefined)
-                throw new TypeError()
-            return _gcd(Math.abs(a), Math.abs(b))
-        }
-
-        function gcm(a, b) {
-            return Math.abs(a * b) / gcd(a, b);
-        }
-
-        class Frac {
-            num = 0
-            den = 0
-            constructor(_num, _den) {
-                this.num = _num;
-                this.den = _den;
-                this.simplify()
-            }
-
-            sub(b) {
-                let bn = new Frac(-b.num, b.den)
-                return this.add(bn)
-            }
-
-            add(b) {
-                let a = this
-                let cm = gcm(a.den, b.den)
-                let res = new Frac(a.num * (cm / a.den) + b.num * (cm / b.den), cm)
-                res.simplify()
-                return res
-            }
-
-            mul(b) {
-                let a = this
-                let res = new Frac(a.num * b.num, a.den * b.den)
-                res.simplify()
-                return res
-            }
-
-            div(b) {
-                return this.mul(b.inv())
-            }
-
-            pow(p) {
-                let nnum = ipow(this.num, p)
-                let nden = ipow(this.den, p)
-                return new Frac(nnum, nden)
-            }
-
-            inv() {
-                return new Frac(this.den, this.num)
-            }
-            /**
-             * Nu returneaza nimic
-             */
-            simplify() {
-                let cd = gcd(this.num, this.den);
-                this.den /= cd;
-                this.num /= cd;
-            }
-            getFloatValue() {
-                return this.num / this.den;
-            }
-
-            clone() {
-                return new Frac(this.num, this.den)
-            }
-
-            toString() {
-                return `${this.num}/${this.den}`
-            }
-        }
-
-        class FracSq {
-            frac = new Frac(0, 1);
-            sqrt = 1
-            constructor(_num, _den, _sqrt) {
-                this.frac = new Frac(_num, _den)
-                this.sqrt = _sqrt;
-            }
-
-            mul(b) {
-                if (b instanceof Frac) {
-                    b = new FracSq(b.num, b.den, 1)
+        function createMatrixInput(size) {
+            let tb = document.getElementById("matrix-input")
+            tb.innerHTML = ""
+            for (let i = 0; i < size; i++) {
+                let row = tb.insertRow();
+                for (let j = 0; j < size; j++) {
+                    let cell = row.insertCell()
+                    let cin = document.createElement("input")
+                    cin.value = +(i == j)
+                    cell.appendChild(cin)
                 }
-                let csq = gcm(this.sqrt, b.sqrt)
-                let f1 = this.frac.pow(csq / this.sqrt)
-                let f2 = b.frac.pow(csq / b.sqrt)
-                let res = f1.mul(f2)
-
-                res = (new FracSq(res.num, res.den, csq)).simplify()
-                return res
             }
+        }
 
-            /**
-             * Returneaza Frac sau FracSq, daca se poate simplifica sau nu 
-            */
-            simplify() {
-                let res = this
-                let i = 2
-                for (i = 2; i * i <= res.sqrt; i++) {
-                    while (res.sqrt % i == 0) {
-                        let r = this.#simplifyPw(i)
-                        if (r == null) {
+        function parseMatrixInput() {
+            let mat = []
+            let rows = document.getElementById("matrix-input").querySelectorAll("tr");
+            for (let i = 0; i < rows.length; i++) {
+                let cells = rows[i].querySelectorAll("td");
+                mat.push([])
+                for (let j = 0; j < cells.length; j++) {
+                    mat[i].push("(" + cells[j].childNodes[0].value + ")")
+                }
+            }
+            return mat
+        }
+
+        function replaceSqrt(str) {
+            while (true) {
+                let pos = str.indexOf("^(1/2)")
+                if (pos == -1)
+                    break;
+                if (str[pos - 1] == ')') {
+                    let cnt = 1
+                    let i = pos - 2
+                    while (cnt != 0) {
+                        if (str[i] == ')')
+                            cnt++;
+                        else if (str[i] == '(')
+                            cnt--;
+                        i--
+                    }
+                    i = Math.max(i, 0)
+                    str = str.slice(0, i) + "sqrt" + str.slice(i, pos) + str.slice(pos + 6)
+                }
+                else {
+                    let i = pos - 1
+                    while (str[i - 1] >= '0' && str[i - 1] <= "9") {
+                        i--
+                        if (i == 0)
                             break;
-                        }
-                        res = r
+                    }
+                    str = str.slice(0, i) + "sqrt(" + str.slice(i, pos) + str.slice(pos + 5)
+                }
+            }
+            return str
+        }
 
-                        if (res instanceof Frac)
-                            return res
+        function calcDet(a) {
+            let n = a.length
+            if (n == 1) // 
+                return a[0][0]
+            let expr = "0"
+            for (let j = 0; j < n; j++) { // pt fiecare minor
+                let mn = []
+                for (let i1 = 1; i1 < n; i1++) {
+                    mn.push([]) // creeza o noua linie
+                    for (let j1 = 0; j1 < n; j1++) { // pt fiecare coloana din minor 
+                        if (j != j1) {
+                            mn[i1 - 1].push(a[i1][j1]) // se copiaza din matricea initiala in minor
+                        }
                     }
                 }
-
-                let r = this.#simplifyPw(res.sqrt) // res sqrt
-                if (r != null)
-                    res = r;
-
-                return res
+                if (j % 2 == 0) // semnul in functie de paritatea lui j
+                    expr += "+(" + calcDet(mn) + ")" + "*(-1)*" + a[0][j]
+                else
+                    expr += "+(" + calcDet(mn) + ")" + "*" + a[0][j]
             }
-            /**
-             * Returneaza Frac sau FracSq, sau null daca nu se poate simplifica
-             */
-            #simplifyPw(p) {
-                if (p == 1)
-                    return this.clone();
-                let sqnum = Math.round(Math.pow(this.frac.num, 1 / p))
-                let sqden = Math.round(Math.pow(this.frac.den, 1 / p))
-                if (ipow(sqnum, p) == this.frac.num && ipow(sqden, p) == this.frac.den) { // daca merge sa simplifici radicalul
-                    let np = this.sqrt / p;
-                    if (np == 1)
-                        return new Frac(sqnum, sqden);
-                    else
-                        return new FracSq(sqnum, sqden, np)
-                }
-                return null // nu a mers simplificarea
-            }
-
-            clone() {
-                return new FracSq(this.num, this.den, this.sqrt);
-            }
-
-            getFloatValue() {
-                return Math.pow(Frac.prototype.getFloatValue(this), 1. / sqrt);
-            }
+            return Algebrite.run(expr)
         }
 
-
-        f2 = new FracSq(1, 4, 2)
-        f1 = new FracSq(1, 2, 3)
-        f3 = new FracSq(2, 1, 3)
-        res = f1.mul(f2)
-        res = res.mul(f3)
-        console.log(res)
+        let tableSize = document.getElementById("table-size");
+        tableSize.addEventListener("change", function () {
+            createMatrixInput(parseInt(tableSize.value))
+        })
+        createMatrixInput(parseInt(tableSize.value))
+        let calcBut = document.getElementById("calc-button")
+        window.MathJax = {
+            "fast-preview": {
+                disabled: true
+            },
+            AuthorInit: function () {
+                MathJax.Hub.Register.StartupHook('End', function () {
+                    MathJax.Hub.processSectionDelay = 0
+                    var mathSource = document.getElementById('result-box')
+                    var math = MathJax.Hub.getAllJax("result-latex")[0]
+                    calcBut.addEventListener('click', function () {
+                        let mat = parseMatrixInput()
+                        let res = calcDet(mat)
+                        res = replaceSqrt(res)
+                        MathJax.Hub.Queue(['Text', math, "det A =" + res])
+                    })
+                })
+            }
+        }
     </script>
 </body>
 
