@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/latest.js?config=AM_CHTML"></script>
+    <title>Matrice inversa</title>
+</head>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+
+<body>
+    <input style="width: 20px;" type="text">
+    <div>
+        <script type="math/asciimath">
+            f(x) = 2^x
+        </script>
+    </div>
+    <script>
+        function _gcd(a, b) {
+            if (b == 0)
+                return a
+            else
+                return _gcd(b, a % b)
+        }
+
+        function ipow(a, exp) {
+            res = 1
+            r = a
+            while (exp != 0) {
+                if (exp & 1 != 0)
+                    res = res * r;
+
+                r = r * a
+                exp /= 2
+            }
+            return res
+        }
+
+        function gcd(a, b) {
+            if (a == undefined)
+                throw new TypeError()
+            return _gcd(Math.abs(a), Math.abs(b))
+        }
+
+        function gcm(a, b) {
+            return Math.abs(a * b) / gcd(a, b);
+        }
+
+        class Frac {
+            num = 0
+            den = 0
+            constructor(_num, _den) {
+                this.num = _num;
+                this.den = _den;
+                this.simplify()
+            }
+
+            sub(b) {
+                let bn = new Frac(-b.num, b.den)
+                return this.add(bn)
+            }
+
+            add(b) {
+                let a = this
+                let cm = gcm(a.den, b.den)
+                let res = new Frac(a.num * (cm / a.den) + b.num * (cm / b.den), cm)
+                res.simplify()
+                return res
+            }
+
+            mul(b) {
+                let a = this
+                let res = new Frac(a.num * b.num, a.den * b.den)
+                res.simplify()
+                return res
+            }
+
+            div(b) {
+                return this.mul(b.inv())
+            }
+
+            pow(p) {
+                let nnum = ipow(this.num, p)
+                let nden = ipow(this.den, p)
+                return new Frac(nnum, nden)
+            }
+
+            inv() {
+                return new Frac(this.den, this.num)
+            }
+            /**
+             * Nu returneaza nimic
+             */
+            simplify() {
+                let cd = gcd(this.num, this.den);
+                this.den /= cd;
+                this.num /= cd;
+            }
+            getFloatValue() {
+                return this.num / this.den;
+            }
+
+            clone() {
+                return new Frac(this.num, this.den)
+            }
+
+            toString() {
+                return `${this.num}/${this.den}`
+            }
+        }
+
+        class FracSq {
+            frac = new Frac(0, 1);
+            sqrt = 1
+            constructor(_num, _den, _sqrt) {
+                this.frac = new Frac(_num, _den)
+                this.sqrt = _sqrt;
+            }
+
+            mul(b) {
+                if (b instanceof Frac) {
+                    b = new FracSq(b.num, b.den, 1)
+                }
+                let csq = gcm(this.sqrt, b.sqrt)
+                let f1 = this.frac.pow(csq / this.sqrt)
+                let f2 = b.frac.pow(csq / b.sqrt)
+                let res = f1.mul(f2)
+
+                res = (new FracSq(res.num, res.den, csq)).simplify()
+                return res
+            }
+
+            /**
+             * Returneaza Frac sau FracSq, daca se poate simplifica sau nu 
+            */
+            simplify() {
+                let res = this
+                let i = 2
+                for (i = 2; i * i <= res.sqrt; i++) {
+                    while (res.sqrt % i == 0) {
+                        let r = this.#simplifyPw(i)
+                        if (r == null) {
+                            break;
+                        }
+                        res = r
+
+                        if (res instanceof Frac)
+                            return res
+                    }
+                }
+
+                let r = this.#simplifyPw(res.sqrt) // res sqrt
+                if (r != null)
+                    res = r;
+
+                return res
+            }
+            /**
+             * Returneaza Frac sau FracSq, sau null daca nu se poate simplifica
+             */
+            #simplifyPw(p) {
+                if (p == 1)
+                    return this.clone();
+                let sqnum = Math.round(Math.pow(this.frac.num, 1 / p))
+                let sqden = Math.round(Math.pow(this.frac.den, 1 / p))
+                if (ipow(sqnum, p) == this.frac.num && ipow(sqden, p) == this.frac.den) { // daca merge sa simplifici radicalul
+                    let np = this.sqrt / p;
+                    if (np == 1)
+                        return new Frac(sqnum, sqden);
+                    else
+                        return new FracSq(sqnum, sqden, np)
+                }
+                return null // nu a mers simplificarea
+            }
+
+            clone() {
+                return new FracSq(this.num, this.den, this.sqrt);
+            }
+
+            getFloatValue() {
+                return Math.pow(Frac.prototype.getFloatValue(this), 1. / sqrt);
+            }
+        }
+
+
+        f2 = new FracSq(1, 4, 2)
+        f1 = new FracSq(1, 2, 3)
+        f3 = new FracSq(2, 1, 3)
+        res = f1.mul(f2)
+        res = res.mul(f3)
+        console.log(res)
+    </script>
+</body>
+
+</html>
