@@ -41,6 +41,33 @@
                 }
             }
         }
+        
+        function removeExtraBrackets(str){
+            let i = 0;
+            while(str[i]=='(' && str[str.length-i-1]==')')
+                i++;
+            return str.slice(i,str.length-i)
+        }
+
+        function nextPermutation(arr) {
+            let i = arr.length - 2;
+            while (i >= 0 && arr[i] >= arr[i + 1]) {
+                i--;
+            }
+
+            if (i === -1) {
+                return arr.reverse();
+            }
+
+            let j = arr.length - 1;
+            while (arr[j] <= arr[i]) {
+                j--;
+            }
+
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+            return arr.slice(0, i + 1).concat(arr.slice(i + 1).reverse());
+        }
+
 
         function parseMatrixInput() {
             let mat = []
@@ -110,6 +137,50 @@
             return Algebrite.run(expr)
         }
 
+        function calcRank(a) {
+            let n = a.length;
+            let m = a[0].length;
+            let mns = Math.min(n, m);
+            // pentru fiecare rank 
+            while (mns != 0) {
+                let rows = new Array(mns).fill(1).concat(new Array(n - mns).fill(0));
+                rw = rows.slice();
+                // pentru fiecare minor 
+                do {
+
+                    let cols = new Array(mns).fill(1).concat(new Array(m - mns).fill(0));
+                    cl = cols.slice();
+                    do {
+                        let mn = [];
+                        let ci = 0;
+                        for (let i = 0; i < n; i++) {
+                            if (rw[i] == 0)
+                                continue;
+                            mn.push([]);
+                            for (let j = 0; j < m; j++) {
+                                if (cl[j] == 0)
+                                    continue;
+                                mn[ci].push(a[i][j])
+                            }
+                            ci++;
+                        }
+                        let det = calcDet(mn);
+                        if (removeExtraBrackets(det) != "0") {
+                            console.log(JSON.stringify([rw, cl]), mns, 1, det)
+                            return mns;
+                        }
+                        console.log(JSON.stringify([rw, cl]), mns, 0)
+                        
+                        cl = nextPermutation(cl);
+                    } while (cl.toString() != cols.toString());
+
+                    rw = nextPermutation(rw);
+                } while (rw.toString() != rows.toString());
+                mns--;
+            }
+            return "-oo";
+        }
+
         function transpose(a) {
             let n = a.length
             for (let i = 0; i < n; i++)
@@ -156,6 +227,7 @@
             return inv
         }
 
+
         let tableSize = document.getElementById("table-size");
         tableSize.addEventListener("change", function () {
             createMatrixInput(parseInt(tableSize.value))
@@ -173,15 +245,15 @@
                     var math = MathJax.Hub.getAllJax("result-latex")[0]
                     calcBut.addEventListener('click', function () {
                         let mat = parseMatrixInput()
-                        let inv = calcInverse(mat)
                         let det = calcDet(mat)
                         det = replaceSqrt(det)
-                        MathJax.Hub.Queue(['Text', math, "A^-1=" + JSON.stringify(inv) + ", det A = " + det])
+                        let rank = calcRank(mat)
+                        let invstr = (rank == Math.min(mat.length, mat[0].length) ? JSON.stringify(calcInverse(mat)) : " cancel(O) ");
+                        MathJax.Hub.Queue(['Text', math, "A^-1=" + invstr + ", det A = " + det + ", rang A = " + rank])
                     })
                 })
             }
         }
-        console.log("test")
     </script>
 </body>
 
