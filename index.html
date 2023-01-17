@@ -116,11 +116,11 @@
 
         function calcDet(a) {
             let n = Math.min(a.length, a[0].length)
-            if (n == 1) // 
+            if (n == 1) // daca matricea este 1x1 atunci determinatul este acel element
                 return a[0][0]
             let expr = "0"
             for (let j = 0; j < n; j++) { // pt fiecare minor
-                let mn = []
+                let mn = [] // matricea minorului 
                 for (let i1 = 1; i1 < n; i1++) {
                     mn.push([]) // creeza o noua linie
                     for (let j1 = 0; j1 < n; j1++) { // pt fiecare coloana din minor 
@@ -141,20 +141,20 @@
         function calcRank(a) {
             let n = a.length;
             let m = a[0].length;
-            let mns = Math.min(n, m);
+            let mns = Math.min(n, m); // rancul maxim
             // pentru fiecare rank 
             while (mns != 0) {
                 let rows = new Array(mns).fill(1).concat(new Array(n - mns).fill(0));
                 rw = rows.slice();
-                // pentru fiecare minor 
+                // pentru fiecare minor de marime mns x mns
                 do {
 
                     let cols = new Array(mns).fill(1).concat(new Array(m - mns).fill(0));
                     cl = cols.slice();
                     do {
                         let mn = [];
-                        let ci = 0;
-                        for (let i = 0; i < n; i++) {
+                        let ci = 0; 
+                        for (let i = 0; i < n; i++) { // se copiaza elementele din matrice in minor
                             if (rw[i] == 0)
                                 continue;
                             mn.push([]);
@@ -165,43 +165,44 @@
                             }
                             ci++;
                         }
-                        let det = calcDet(mn);
-                        if (removeExtraBrackets(det) != "0") {
-                            console.log(JSON.stringify([rw, cl]), mns, 1, det)
+                        let det = calcDet(mn); // se calculeaza determinatul minorului  
+                        if (removeExtraBrackets(det) != "0") { // daca este egal cu 0 atunci functia returneaza rancul curent
                             return mns;
                         }
-                        console.log(JSON.stringify([rw, cl]), mns, 0)
 
                         cl = nextPermutation(cl);
-                    } while (cl.toString() != cols.toString());
+                    } while (cl.toString() != cols.toString()); // ruleaza cat timp nu am trecut prin toate combinarile de m luate cate mns
 
                     rw = nextPermutation(rw);
-                } while (rw.toString() != rows.toString());
+                } while (rw.toString() != rows.toString()); // ruleaza cat timp nu am trecut prin toate combinarile de n luate cate mns
                 mns--;
             }
-            return "-oo";
+            return "-oo"; // cazul in care mns este 0 returneaza -infinit
         }
 
-        function transpose(a) {
-            for (let i = 0; i < a.length; i++)
-                for (let j = i + 1; j < a[0].length; j++) {
-                    let c = a[i][j]
-                    a[i][j] = a[j][i]
-                    a[j][i] = c
-                }
+        function transpose(a) { // calculeaza transpusa matricei
+            let res = []
+            for(let j=0;j<a[0].length;j++){
+                res.push([])
+                for(let i=0;i<a.length;i++)
+                    res[j].push(a[i][j])
+            }
+            return res
         }
 
         function calcInverse(a) {
-            transpose(a)
+            a = transpose(a)
             let n = Math.min(a.length, a[0].length)
             expr = "0"
             let ideta = "(" + Algebrite.run("1/(" + calcDet(a) + ")") + ")"
             let inv = []
-            for (let i = 0; i < n; i++) {
+            //pentru fiecare element din matrice
+            for (let i = 0; i < n; i++) { 
                 inv.push([])
                 for (let j = 0; j < n; j++) {
                     let inc = 0
                     let mn = []
+                    // se copiaza in mn minorul care corespunde cu eliminarea liniei i si coloanei j 
                     for (let k = 0; k < n - 1; k++)
                         mn.push([])
                     for (let i1 = 0; i1 < n; i1++) {
@@ -247,11 +248,16 @@
                     var math = MathJax.Hub.getAllJax("result-latex")[0]
                     calcBut.addEventListener('click', function () {
                         let mat = parseMatrixInput()
+                        let n = mat.length
+                        let m = mat[0].length
                         let det = calcDet(mat)
                         det = replaceSqrt(det)
                         let rank = calcRank(mat)
-                        let invstr = (rank == Math.min(mat.length, mat[0].length) ? JSON.stringify(calcInverse(mat)) : " cancel(O) ");
-                        MathJax.Hub.Queue(['Text', math, "A^-1=" + invstr + ", det A = " + det + ", rang A = " + rank])
+                        let invstr = (rank == Math.min(m,n) ? JSON.stringify(calcInverse(mat)) : " cancel(O) "); // daca rancul nu este maxim nu exista inversa
+                        if(m==n)
+                            MathJax.Hub.Queue(['Text', math, "A^-1=" + invstr + ", det A = " + det + ", rang A = " + rank]);
+                        else 
+                            MathJax.Hub.Queue(['Text',math, "rang A = " + rank]);
                     })
                 })
             }
